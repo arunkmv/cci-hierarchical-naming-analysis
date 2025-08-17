@@ -1,0 +1,77 @@
+#+title: Analysis of hierarchical parameter naming in the SystemC CCI Standard
+#+author: Arunkumar Vaidyanathan
+#+date: 15.08.2025
+#+OPTIONS: toc:nil
+
+This discussion pertains to the following issue: https://github.com/accellera-official/cci/issues/277. 
+
+* Background
+
+** Current status from standards and implementations
+
+*** SystemC LRM (IEEE Std 1666-2023)
+
+\S 5.17.1 states that:
+#+begin_quote
+A hierarchical name shall be composed of a set of string names separated by the period character '.', starting
+with the string name of a top-level ~sc_object~ instance and including the string name of each module instance
+or process instance descending down through the object hierarchy until the current ~sc_object~ or ~sc_event~ is
+reached. The hierarchical name shall end with the string name of the ~sc_object~ or ~sc_event~ itself.
+
+Hierarchical names are case-sensitive. It shall be an error if a string name includes the period character (.)
+or any white-space characters. It is strongly recommended that an application limit the character set of a
+string name to the following:
+a) Lowercase letters a–z
+b) Uppercase letters A–Z
+c) Decimal digits 0–9
+d) Underscore character _
+An implementation may generate a warning if a string name contains characters outside this set but is not
+obliged to do so.
+#+end_quote
+
+From the SystemC reference implementation ([[https://github.com/accellera-official/systemc/blob/e80ef3a44722efb3980548665306fcc848728858/src/sysc/kernel/sc_object.cpp#L55][link]]):
+#+begin_src c++
+const char SC_HIERARCHY_CHAR = '.';
+#+end_src
+
+*** SystemC CCI LRM v1.0
+
+\S 5.9 states that:
+#+begin_quote
+Both parameters and brokers are required to have unique names relative to each other; this extends to include all
+named SystemC objects for SystemC version 2.3.2 and later by using ~sc_core::sc_register_hierarchical_name~.
+#+end_quote
+
+From the SystemC CCI reference implementation, in the ~cci_param_untyped~ constructor ([[https://github.com/accellera-official/cci/blob/5a671c61d8f805bd9cbb00a508e403912f9b112b/src/cci/cfg/cci_param_untyped.cpp#L35][link]]):
+#+begin_src c++
+    if(name_type == CCI_ABSOLUTE_NAME) {
+        m_name = name;
+    } else {
+        sc_core::sc_object* current_obj = sc_core::sc_get_current_object();
+        for (sc_core::sc_process_handle current_proc(current_obj);
+             current_proc.valid();
+             current_proc = sc_core::sc_process_handle(current_obj)) { 
+            current_obj = current_proc.get_parent_object(); 
+        }
+        if(current_obj) {
+            m_name = std::string(current_obj->name()) +
+                sc_core::SC_HIERARCHY_CHAR + name;
+        } else {
+            m_name = name;
+        }
+    }
+#+end_src
+
+* Supporting Examples
+
+** Scenario 1
+Module ~A~ has a parameter ~B.c~ with relative naming. Module ~B~ has no parameters.
+
+** Scenario 2
+Module ~A~ has a parameter ~B.c~ with relative naming. Module ~B~ has a parameter ~c~ with relative naming.
+
+** Scenario 3
+Module ~A~ has a parameter ~c~ with relative naming. Module ~B~ has a parameter ~A.c~ with absolute naming.
+
+** Scenario 4
+Module ~A~ has no parameters. Module ~B~ has a parameter ~A.c~ with absolute naming.
