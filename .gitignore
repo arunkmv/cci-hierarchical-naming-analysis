@@ -5,3 +5,6 @@
 *.blg
 *.bbl
 *.aux
+
+examples/build/*
+*/.cache/*
