@@ -13,6 +13,10 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Tooling support
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# SystemC settings
+add_compile_definitions(SC_ENABLE_ASSERTIONS=1)
+
+# Source files
 set(s1_src scenario_1.cpp)
 
 # Fetch libraries/packages
@@ -33,11 +37,13 @@ set(SYSTEMCCCI_BUILD_TESTS OFF CACHE INTERNAL "Turn off SystemC CCI tests")
 FetchContent_Declare(
   cci
   GIT_REPOSITORY https://github.com/accellera-official/cci.git
-  GIT_TAG 2f70602c8753220e02778fcab040f197c0747f84
+  GIT_TAG 5a671c61d8f805bd9cbb00a508e403912f9b112b
 )
 message(STATUS "Fetching SystemC CCI...")
 FetchContent_MakeAvailable(cci)
 
+# Targets
 add_executable(scenario_1_ex ${s1_src})
 
+# Link libraries to targets
 target_link_libraries(scenario_1_ex PUBLIC systemc cci)

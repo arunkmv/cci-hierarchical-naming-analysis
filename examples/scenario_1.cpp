@@ -21,6 +21,8 @@ public:
         m_c_param(C_PARAM_NAME, C_PARAM_DEFAULT_VALUE,
                   "Param named B.c within mod A", cci::CCI_RELATIVE_NAME) {
     std::cout << "Instantiated module: " << name() << std::endl;
+    std::cout << "Instantiated parameter: " << m_c_param.name()
+              << " with default value: " << C_PARAM_DEFAULT_VALUE << std::endl;
   }
 
   void SetParamValue(const int val) { m_c_param = val; }
@@ -43,10 +45,13 @@ int sc_main(int argc, char *argv[]) {
       std::string(A_MOD_NAME) + "." + std::string(C_PARAM_NAME);
 
   // Register CCI configuration broker
-  cci::cci_broker_handle m_broker = cci::cci_register_broker(
-      new cci_utils::broker("Global Broker"));
+  cci::cci_broker_handle m_broker =
+      cci::cci_register_broker(new cci_utils::broker("Global Broker"));
 
-  m_broker.set_preset_cci_value(par_name, cci::cci_value(20));
+  int next_par_val = 20;
+  std::cout << "Setting preset value through broker to: " << next_par_val
+            << std::endl;
+  m_broker.set_preset_cci_value(par_name, cci::cci_value(next_par_val));
 
   // Instantiate module hierarchy
   A m_a(A_MOD_NAME);
@@ -54,34 +59,28 @@ int sc_main(int argc, char *argv[]) {
   // Verify that parameter is registered in broker
   cci::cci_param_typed_handle<int> par_handle =
       m_broker.get_param_handle<int>(par_name);
-  if (par_handle.is_valid()) {
-    std::cout << "Parameter " << par_handle.name() << " is registered in broker"
-              << std::endl;
-  } else {
-    std::cout << "Parameter " << par_name << " is not registered in broker"
-              << std::endl;
-    return 1;
-  }
+  sc_assert(par_handle.is_valid() && "Parameter is not registered!");
+
+  // Check is preset value
+  std::cout << "Value of parameter from Module A: " << m_a.GetParamValue()
+            << std::endl;
+  std::cout << "Value of parameter from Broker: " << par_handle.get_value()
+            << std::endl;
+
+  next_par_val = 30;
+  std::cout << "Setting value of parameter through Module A to: "
+            << next_par_val << std::endl;
+  m_a.SetParamValue(next_par_val);
 
   std::cout << "Value of parameter from Module A: " << m_a.GetParamValue()
             << std::endl;
   std::cout << "Value of parameter from Broker: " << par_handle.get_value()
             << std::endl;
 
-  int new_par_value = 30;
-  std::cout << "Setting value of parameter through Module A to "
-            << new_par_value << std::endl;
-  m_a.SetParamValue(new_par_value);
-
-  std::cout << "Value of parameter from Module A: " << m_a.GetParamValue()
+  next_par_val = 40;
+  std::cout << "Setting value of parameter through Broker to " << next_par_val
             << std::endl;
-  std::cout << "Value of parameter from Broker: " << par_handle.get_value()
-            << std::endl;
-
-  new_par_value = 40;
-  std::cout << "Setting value of parameter through Broker to " << new_par_value
-            << std::endl;
-  par_handle.set_value(new_par_value);
+  par_handle.set_value(next_par_val);
   std::cout << "Value of parameter from Module A: " << m_a.GetParamValue()
             << std::endl;
   std::cout << "Value of parameter from Broker: " << par_handle.get_value()
