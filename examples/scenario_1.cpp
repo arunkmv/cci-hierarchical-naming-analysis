@@ -45,13 +45,19 @@ int sc_main(int argc, char *argv[]) {
       std::string(A_MOD_NAME) + "." + std::string(C_PARAM_NAME);
 
   // Register CCI configuration broker
-  cci::cci_broker_handle m_broker =
-      cci::cci_register_broker(new cci_utils::broker("Global Broker"));
+  cci_utils::broker* global_broker = new cci_utils::broker("Global Broker");
+  cci::cci_register_broker(global_broker);
+  cci::cci_originator m_orig = cci::cci_originator("sc_main");
 
+  // Get broker handle
+  cci::cci_broker_handle m_broker = cci::cci_get_global_broker(m_orig);
+  
   int next_par_val = 20;
   std::cout << "Setting preset value through broker to: " << next_par_val
             << std::endl;
   m_broker.set_preset_cci_value(par_name, cci::cci_value(next_par_val));
+
+  std::cout << m_broker.name() << std::endl;
 
   // Instantiate module hierarchy
   A m_a(A_MOD_NAME);
@@ -61,11 +67,12 @@ int sc_main(int argc, char *argv[]) {
       m_broker.get_param_handle<int>(par_name);
   sc_assert(par_handle.is_valid() && "Parameter is not registered!");
 
-  // Check is preset value
+  // Check if preset value is used
   std::cout << "Value of parameter from Module A: " << m_a.GetParamValue()
             << std::endl;
   std::cout << "Value of parameter from Broker: " << par_handle.get_value()
             << std::endl;
+  std::cout << "Is preset value?: " << m_broker.has_preset_value(par_name) << std::endl;
 
   next_par_val = 30;
   std::cout << "Setting value of parameter through Module A to: "
